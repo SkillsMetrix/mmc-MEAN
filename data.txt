@@ -1,60 +1,36 @@
-<div class="container">
-    <div class="card">
-        <div class="card-header  text-bg-primary">
-            <p>User Registration Page</p>
-        </div>
-        <div class="card-body">
-            <form (ngSubmit)="addUser(data)" #data=ngForm>
-                UserName:<input type="text" name="uname" required ngModel #un="ngModel"/>
-                <div *ngIf="un.invalid && (un.dirty || un.touched)">
-                    username cant be blank
-                </div>
-                Password:<input type="password" name="pass" 
-                 required minlength="6"  ngModel #pass=ngModel/>
+import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest, HttpResponse } from "@angular/common/http";
+import { Injectable } from "@angular/core";
+import { Observable, of } from "rxjs";
+import { tap } from 'rxjs/operators'
 
-                <div *ngIf="pass.invalid && (pass.dirty || pass.touched)">
-                    <div *ngIf="pass.errors?.['required']"><p class="error">password Cant be empty</p></div>
-                     <div *ngIf="pass.errors?.['minlength']"><p class="error">Password must be 6 char long</p> </div>
-                  </div>
+@Injectable()
+export class CacheInterceptor implements HttpInterceptor {
+    private _cache: Map<string, { expireDate: Date; response: HttpResponse<any> }> = new Map()
 
-                Email:<input type="email" name="email" required email ngModel #em=ngModel/>
+    intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
 
-              <div *ngIf="em.invalid">
-                <div *ngIf="em.errors?.['required']"><p class="error">Email Cant be empty</p></div>
-                <div *ngIf="em.errors?.['email']"><p class="error">Email must be formatted</p> </div>
-              </div>
+        if (req.method !== 'GET') {
+            return next.handle(req)
+        }
+        const cachedResponse = this._cache.get(req.url)
+        if (cachedResponse && cachedResponse.expireDate <= new Date()) {
+            this._cache.delete(req.url)
+            return this._sendRequest(req, next)
+        }
+        return cachedResponse ? of(cachedResponse.response) : this._sendRequest(req, next)
 
-                City:<input type="text" name="city" ngModel/>
-                <button [disabled]="data.invalid" class="btn btn-secondary">Register</button>
-
-            </form>
-        </div>
-    </div>
-</div>
-
-
-
-
-import { Component } from '@angular/core';
-import { UserService } from '../shared/services/userdata.service';
-import { NgForm } from '@angular/forms';
-
-@Component({
-  selector: 'app-templateform',
-  templateUrl: './templateform.component.html',
-  styleUrls: ['./templateform.component.css']
-})
-export class TemplateformComponent {
-
-  constructor(private us:UserService){}
-
-  udata={
-    uname:'admin'
-  }
-
-  addUser(nf:NgForm){
-    console.log(nf.value);
-    
-    this.us.addUserToDB()
-  }
+    }
+    private _sendRequest(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+        return next.handle(req).pipe(
+            tap((event) => {
+                if (event instanceof HttpResponse) {
+                    const expireDate = new Date(Date.now() + 10 * 1000);
+                    this._cache.set(req.url, {
+                        expireDate: expireDate,
+                        response: event
+                    })
+                }
+            })
+        )
+    }
 }
