@@ -1,87 +1,58 @@
-import { Injectable } from '@angular/core';
-import { createEffect, Actions, ofType } from '@ngrx/effects';
-import { EmptyError } from 'rxjs';
-import { catchError, concatMap, exhaustMap, map, tap } from 'rxjs/operators';
-import { DataService } from 'src/app/Service/data.service';
-import {
-  getMovies,
-  getMoviesSuccess,
-  addMovies,
-  addMoviesSuccess,
-} from '../Actions/movie.action';
+const express = require("express");
+const cors = require("cors");
+const bp = require("body-parser");
+const mongoose= require('mongoose')
+const empcrud= require('./model')
+const app = express();
+app.use(cors());
+//app.use(bp.urlencoded({extended:true}))
+app.use(bp.json());
+userdata = [];
 
-@Injectable()
-export class MovieEffects {
-  loadMovie$ = createEffect(() =>
-    this.action$.pipe(
-      ofType(getMovies),
-      exhaustMap(() =>
-        this.dataService.getMovies().pipe(
-          map((movies) => getMoviesSuccess(movies)),
-          catchError(() => EmptyError)
-        )
-      )
-    )
-  );
+app.post("/adduser", (req, res) => {
+   
+   const users= new empcrud({
+    ...req.body
+   })
+   users.save().then(() => res.send('user added'))
+});
+app.post("/loginvalid", (req, res) => {
+  var data = req.body;
+  valid = false;
+  console.log(data);
+  if (data.uname === "admin" && data.pass === "pass123") {
+    valid = true;
+  } else {
+    valid = false;
+  }
 
-  addMovie$ = createEffect(() =>
-    this.action$.pipe(
-      ofType(addMovies),
-      tap((movie) => console.log(movie)),
-      concatMap(({ movie }) =>
-        this.dataService.addMovies(movie).pipe(
-          map((newMovie) => addMoviesSuccess(newMovie)),
-          catchError(() => EmptyError)
-        )
-      )
-    )
-  );
+  res.send(valid);
+});
+app.get("/loaduser", (req, res) => {
+  res.send(userdata);
+});
 
-  constructor(private action$: Actions, private dataService: DataService) {}
+const startServer=async() =>{
+  await mongoose.connect('mongodb+srv://amar:amar123@cluster0.rle5i.mongodb.net/mmcdb?retryWrites=true&w=majority&appName=Cluster0')
+  app.listen(4000, () => {
+    console.log("server is ready");
+  });
 }
 
-
-----
-
-
-  import { createAction, props } from '@ngrx/store';
-import { Movie } from '../../Models/movie';
-
-export const getMovies = createAction('[Movie] Get movie');
-export const getMoviesSuccess = createAction(
-  '[Movie] Get movie success',
-  (movies: ReadonlyArray<Movie>) => ({ movies })
-  // props<{ movies: ReadonlyArray<Movie> }>()
-);
-export const addMovies = createAction(
-  '[Movie] Add movie',
-  (movie: Movie) => ({ movie })
-  // props<{ movie: Movie }>()
-);
-export const addMoviesSuccess = createAction(
-  '[Movie] Add movie success',
-  // props<{ movie: Movie }>(),
-  (movie: Movie) => ({ movie })
-);
+startServer()
 
 
----
-  import { createReducer, on } from '@ngrx/store';
-import { Movie } from 'src/app/Models/movie';
-import {
-  addMovies,
-  addMoviesSuccess,
-  getMoviesSuccess,
-} from '../Actions/movie.action';
+-----------
 
-export interface MovieState {
-  movies: ReadonlyArray<Movie>;
-}
 
-const initialState: ReadonlyArray<Movie> = [];
+  
 
-export const movieReducer = createReducer(
-  initialState,
-  on(getMoviesSuccess, (state, { movies }) => [...movies]),
-  on(addMoviesSuccess, (state, { movie }) => [...state, movie])
-);
+
+const mongoose= require('mongoose')
+
+const empcrud= mongoose.model('empcrud',{
+    username:String,
+    password:String,
+    email:String
+})
+module.exports=empcrud
