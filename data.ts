@@ -1,58 +1,59 @@
-const express = require("express");
-const cors = require("cors");
-const bp = require("body-parser");
-const mongoose= require('mongoose')
-const empcrud= require('./model')
-const app = express();
-app.use(cors());
-//app.use(bp.urlencoded({extended:true}))
-app.use(bp.json());
-userdata = [];
-
-app.post("/adduser", (req, res) => {
-   
-   const users= new empcrud({
-    ...req.body
-   })
-   users.save().then(() => res.send('user added'))
-});
-app.post("/loginvalid", (req, res) => {
-  var data = req.body;
-  valid = false;
-  console.log(data);
-  if (data.uname === "admin" && data.pass === "pass123") {
-    valid = true;
-  } else {
-    valid = false;
-  }
-
-  res.send(valid);
-});
-app.get("/loaduser", (req, res) => {
-  res.send(userdata);
-});
-
-const startServer=async() =>{
-  await mongoose.connect('mongodb+srv://amar:amar123@cluster0.rle5i.mongodb.net/mmcdb?retryWrites=true&w=majority&appName=Cluster0')
-  app.listen(4000, () => {
-    console.log("server is ready");
-  });
-}
-
-startServer()
 
 
------------
+const express= require('express')
+const amqp= require('amqplib/callback_api')
+const app= express();
 
+app.get('/customer',(req,res)=>{
+    let data={
+        id:101,
+        name:'User123',
+        email:'user@mail.com'
+    }
+amqp.connect('amqp://localhost',function(err,conn){
+    conn.createChannel(function(err,ch){
+        const queue= 'message_queue_user'
+        const msg= JSON.stringify(data)
+        ch.assertQueue(queue,{durable:false})
+        ch.sendToQueue(queue,Buffer.from(msg))
+        console.log(`sent ${msg} to ${queue}`);
 
-  
-
-
-const mongoose= require('mongoose')
-
-const empcrud= mongoose.model('empcrud',{
-    username:String,
-    password:String,
-    email:String
+    })
 })
-module.exports=empcrud
+    res.send('customer services activated')
+})
+
+
+app.listen(4000,()=>{
+    console.log('server is ready');
+})
+
+
+
+
+
+
+
+const express= require('express')
+const amqp= require('amqplib/callback_api')
+const app= express();
+
+app.get('/product',(req,res)=>{
+
+    amqp.connect('amqp://localhost',function(err,conn){
+        const queue= 'message_queue_user'
+        conn.createChannel(function(err,ch){
+            ch.assertQueue(queue,{durable:false})
+            console.log('Waiting for the message from QUEUE');
+            ch.consume(queue,async function(msg){
+                console.log('Message from Queue  ',msg.content.toString());
+                await res.send(msg.content.toString())
+            },{noAck:true})
+        })
+    })
+    //res.send('product services activated')
+})
+
+app.listen(4001,()=>{
+    console.log('server is ready');
+})
