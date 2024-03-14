@@ -22,5 +22,5 @@
     "mollitia": "0.0.8",
     "request": "^2.88.2"
   },
-  "homepage": "https://github.com/ganny26/circuit-breaker-nodejs#readme"
+
 }
