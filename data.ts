@@ -1,65 +1,69 @@
-router.get("/", function (req, res) {
-  res.status(200).json(books);
-});
 
-router.get("/:id", function (req, res) {
-  let book = books.find(function (item) {
-    return item.id == req.params.id;
-  });
+const { add, err, promiseTest, app } = require('../index')
+const supertest =require('supertest')
+test('toBe',()=>{
+    expect(add(2,3)).toBe(5)
+})
+test('toEqual',()=>{
+    expect(add(2,3)).toBeDefined()
+})
+test('toBeNUll',()=>{
+    expect(add(2,3)).not.toBeNull()
+})
+test('toBeLessThan',()=>{
+    expect(add(2,3)).toBeLessThan(6)
+})
+test('toMatch',()=>{
+    expect(add('Hello','world')).toMatch(/Hello/)
+})
+test('toError',()=>{
+    expect(()=>err()).toThrow('its an error')
+})
+test('promise passtest',()=>{
+    expect(promiseTest(5,3)).resolves.toBe('Positive')
+})
+test('express',async()=>{
+await supertest(app)
+.get('/users')
+.expect(200)
+.then(result => {
+    expect(result && result.body && typeof result.body ==='object')
+})
+})
 
-  book ? res.status(200).json(book) : res.sendStatus(404);
-});
 
-router.post("/", function (req, res) {
-  const { title, author, finished } = req.body;
 
-  let book = {
-    id: books.length + 1,
-    title: title,
-    author: author,
-    finished: finished !== undefined ? finished : false,
-    createdAt: new Date(),
-  };
+---
+  
+const express=require('express')
+const app= express()
+app.use(express.json())
+app.use(express.urlencoded({extended:true}))
+const users=[{name:'mahesh',email:'mahesh@mail.com',pass:'pass@123'}]
 
-  books.push(book);
+app.get("/users",(req,res)=>{
+    res.status(200).json(users)
+})
 
-  res.status(201).json(book);
-});
-
-router.put("/:id", function (req, res) {
-  let book = books.find(function (item) {
-    return item.id == req.params.id;
-  });
-
-  if (book) {
-    const { title, author, finished } = req.body;
-
-    let updated = {
-      id: book.id,
-      title: title !== undefined ? title : book.title,
-      author: author !== undefined ? author : book.author,
-      finished: finished !== undefined ? finished : book.finished,
-      createdAt: book.createdAt,
-    };
-
-    books.splice(books.indexOf(book), 1, updated);
-
-    res.sendStatus(204);
-  } else {
-    res.sendStatus(404);
-  }
-});
-
-router.delete("/:id", function (req, res) {
-  let book = books.find(function (item) {
-    return item.id == req.params.id;
-  });
-
-  if (book) {
-    books.splice(books.indexOf(book), 1);
-  } else {
-    return res.sendStatus(404);
-  }
-
-  res.sendStatus(204);
-});
+const add=(a,b)=>{
+    return a+b
+}
+const err= ()=>{
+    throw new Error('its an error')
+}
+const data=()=>{
+    return ['admin']
+}
+const promiseTest=(a,b) =>{
+    return new Promise((resolve,reject)=> {
+        if(a-b>0){
+            resolve('Positive')
+        }else {
+            reject('negative')
+        }
+    })
+}
+app.listen(4000)
+module.exports={
+    add,err,promiseTest,app
+}
